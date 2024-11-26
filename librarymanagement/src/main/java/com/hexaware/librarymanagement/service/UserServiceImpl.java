@@ -1,8 +1,10 @@
 package com.hexaware.librarymanagement.service;
 
+import com.hexaware.librarymanagement.entity.Admin;
 import com.hexaware.librarymanagement.entity.User;
+import com.hexaware.librarymanagement.repository.AdminRepository;
 import com.hexaware.librarymanagement.repository.UserRepository;
-import com.hexaware.librarymanagement.service.UserService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +18,13 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Override
+    @Transactional
     public User registerUser(User user) {
+        if (user.getEmail() == null || user.getPassword() == null || user.getName() == null) {
+            throw new IllegalArgumentException("User name, email, and password cannot be null.");
+        }
+
+        // Save the user to the database
         return userRepository.save(user);
     }
 

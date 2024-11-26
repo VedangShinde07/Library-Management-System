@@ -26,9 +26,6 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String role; // ADMIN or USER
-
     private String contactNumber;
     private String address;
 
