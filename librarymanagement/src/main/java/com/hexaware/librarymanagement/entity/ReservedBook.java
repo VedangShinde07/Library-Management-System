@@ -15,7 +15,7 @@ public class ReservedBook {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int reservationId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
