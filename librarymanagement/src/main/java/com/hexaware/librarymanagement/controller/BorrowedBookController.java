@@ -1,12 +1,14 @@
 package com.hexaware.librarymanagement.controller;
 
+import com.hexaware.librarymanagement.dto.BorrowedBookDTO;
 import com.hexaware.librarymanagement.entity.Book;
 import com.hexaware.librarymanagement.entity.BorrowedBook;
 import com.hexaware.librarymanagement.entity.User;
+import com.hexaware.librarymanagement.exception.CRUDAPIException;
 import com.hexaware.librarymanagement.repository.UserRepository;
 import com.hexaware.librarymanagement.repository.BorrowedBookRepository;
 import com.hexaware.librarymanagement.repository.BookRepository;
-import com.hexaware.librarymanagement.service.BorrowedBookService;
+import com.hexaware.librarymanagement.service.IBorrowedBookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/borrowed-books")
@@ -24,7 +25,7 @@ public class BorrowedBookController {
     private BorrowedBookRepository borrowedBookRepository;
 
     @Autowired
-    private BorrowedBookService borrowedBookService;
+    private IBorrowedBookService borrowedBookService;
 
     @Autowired
     private UserRepository userRepository;
@@ -33,43 +34,38 @@ public class BorrowedBookController {
     private BookRepository bookRepository;
 
     @PostMapping("/borrow")
-    public ResponseEntity<BorrowedBook> borrowBook(@RequestBody BorrowedBook borrowedBook) {
-        Optional<User> userOptional = userRepository.findById(borrowedBook.getUser().getUserId());
-        Optional<Book> bookOptional = bookRepository.findById(borrowedBook.getBook().getBookId());
+    public ResponseEntity<BorrowedBookDTO> borrowBook(@RequestBody BorrowedBookDTO borrowedBookDTO) {
+        // Validate User
+        userRepository.findById(borrowedBookDTO.getUserId())
+                .orElseThrow(() -> new CRUDAPIException(HttpStatus.NOT_FOUND, "User with ID " + borrowedBookDTO.getUserId() + " not found"));
 
-        // Validate that both user and book exist
-        if (userOptional.isEmpty() || bookOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        // Validate Book
+        bookRepository.findById(borrowedBookDTO.getBookId())
+                .orElseThrow(() -> new CRUDAPIException(HttpStatus.NOT_FOUND, "Book with ID " + borrowedBookDTO.getBookId() + " not found"));
+
+        if (borrowedBookDTO.getBorrowedDate() == null) {
+            borrowedBookDTO.setBorrowedDate(new Date());
         }
 
-        // Set the complete user and book objects in the borrowedBook entity
-        borrowedBook.setUser(userOptional.get());
-        borrowedBook.setBook(bookOptional.get());
-
-        // Set the borrowed date if not already provided
-        if (borrowedBook.getBorrowedDate() == null) {
-            borrowedBook.setBorrowedDate(new Date());
+        if (borrowedBookDTO.getFine() == 0.0) {
+            borrowedBookDTO.setFine(0.0);
         }
 
-        // Set a default fine of 0.0 (can be updated later if necessary)
-        if (borrowedBook.getFine() == 0.0) {
-            borrowedBook.setFine(0.0);
-        }
-
-        // Save the borrowed book in the database using the injected repository
-        BorrowedBook savedBorrowedBook = borrowedBookRepository.save(borrowedBook);
-
-        // Return the saved BorrowedBook entity as a response
-        return ResponseEntity.ok(savedBorrowedBook);
+        BorrowedBookDTO savedBorrowedBook = borrowedBookService.borrowBook(borrowedBookDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedBorrowedBook);
     }
 
     @GetMapping
-    public ResponseEntity<List<BorrowedBook>> getAllBorrowedBooks() {
-        return ResponseEntity.ok(borrowedBookService.getAllBorrowedBooks());
+    public ResponseEntity<List<BorrowedBookDTO>> getAllBorrowedBooks() {
+        List<BorrowedBookDTO> borrowedBooks = borrowedBookService.getAllBorrowedBooks();
+        return ResponseEntity.ok(borrowedBooks);
     }
-
     @GetMapping("/{borrowedBookId}")
-    public ResponseEntity<BorrowedBook> getBorrowedBookById(@PathVariable int borrowedBookId) {
-        return ResponseEntity.ok(borrowedBookService.getBorrowedBookById(borrowedBookId));
+    public ResponseEntity<BorrowedBookDTO> getBorrowedBookById(@PathVariable int borrowedBookId) {
+        BorrowedBookDTO borrowedBook = borrowedBookService.getBorrowedBookById(borrowedBookId);
+        if (borrowedBook == null) {
+            throw new CRUDAPIException(HttpStatus.NOT_FOUND, "Borrowed Book with ID " + borrowedBookId + " not found");
+        }
+        return ResponseEntity.ok(borrowedBook);
     }
 }

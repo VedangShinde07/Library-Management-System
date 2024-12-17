@@ -9,7 +9,6 @@ import java.util.Date;
 @Table(name = "books")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Book {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,4 +38,24 @@ public class Book {
 
     @Column(nullable = false)
     private boolean available; // true if the book is available
+
+    @Version
+    private int version;
+
+    public Book(String title, String author, String isbn, String publisher, Date publicationDate,
+                String edition, String genre, String description, String language,
+                int numberOfPages, double cost, boolean available) {
+        this.title = title;
+        this.author = author;
+        this.isbn = isbn;
+        this.publisher = publisher;
+        this.publicationDate = publicationDate;
+        this.edition = edition;
+        this.genre = genre;
+        this.description = description;
+        this.language = language;
+        this.numberOfPages = numberOfPages;
+        this.cost = cost;
+        this.available = available;
+    }
 }

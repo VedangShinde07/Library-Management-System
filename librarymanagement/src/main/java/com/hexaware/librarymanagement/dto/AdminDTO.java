@@ -13,5 +13,6 @@ public class AdminDTO {
     private int adminId;
     private String adminName;
     private String email;
+    private String password;
     private List<AdminNotificationDTO> notifications;
 }

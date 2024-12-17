@@ -1,39 +1,39 @@
 package com.hexaware.librarymanagement.controller;
 
-import com.hexaware.librarymanagement.entity.User;
-import com.hexaware.librarymanagement.service.UserService;
+import com.hexaware.librarymanagement.dto.UserDTO;
+import com.hexaware.librarymanagement.exception.CRUDAPIException;
+import com.hexaware.librarymanagement.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+
 public class UserController {
 
     @Autowired
-    private UserService userService;
+    private IUserService userService;
 
-    @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        User registeredUser = userService.registerUser(user);
-        return ResponseEntity.ok(registeredUser);
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<User> loginUser(@RequestParam String email, @RequestParam String password) {
-        return userService.authenticateUser(email, password)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(401).build());
-    }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<User> getUserById(@PathVariable int userId) {
-        return ResponseEntity.ok(userService.getUserById(userId));
+    public ResponseEntity<UserDTO> getUserById(@PathVariable int userId) {
+        // Fetch user details using the service and map to UserDTO
+        UserDTO userDTO = userService.getUserById(userId);
+        if (userDTO == null) {
+            throw new CRUDAPIException(HttpStatus.NOT_FOUND, "User Not Found",
+                    "User with ID " + userId + " does not exist.");
+        }
+        return ResponseEntity.ok(userDTO); // Return the user details as UserDTO
     }
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        // Fetch all users and return as a list of UserDTOs
+        List<UserDTO> userDTOs = userService.getAllUsers();
+        return ResponseEntity.ok(userDTOs);
     }
 }

@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface ReservedBookRepository extends JpaRepository<ReservedBook, Integer> {
-    List<ReservedBook> findByUserUserId(int userId);
+    List<ReservedBook> findByUser_Id(int userId);
     List<ReservedBook> findByBookBookId(int bookId);
 }

@@ -15,16 +15,18 @@ public class AdminNotification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int notificationId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne  // Assuming an Admin entity exists
-    @JoinColumn(name = "admin_id", nullable = false)  // Foreign key to Admin entity
-    private Admin admin;  // Link to the admin who sent the notification
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "admin_id", nullable = false)
+    private Admin admin;
 
     private String message;
 
     @Column(nullable = false)
     private Date sentDate;
+
+
 }

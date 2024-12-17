@@ -2,9 +2,9 @@ package com.hexaware.librarymanagement.controller;
 
 import com.hexaware.librarymanagement.dto.ReservedBookDTO;
 import com.hexaware.librarymanagement.entity.Book;
-import com.hexaware.librarymanagement.entity.ReservedBook;
 import com.hexaware.librarymanagement.entity.User;
-import com.hexaware.librarymanagement.service.ReservedBookService;
+import com.hexaware.librarymanagement.exception.CRUDAPIException;
+import com.hexaware.librarymanagement.service.IReservedBookService;
 import com.hexaware.librarymanagement.repository.UserRepository;
 import com.hexaware.librarymanagement.repository.BookRepository;
 import com.hexaware.librarymanagement.repository.ReservedBookRepository;
@@ -22,7 +22,7 @@ import java.util.Optional;
 public class ReservedBookController {
 
     @Autowired
-    private ReservedBookService reservedBookService;
+    private IReservedBookService reservedBookService;
 
     @Autowired
     private UserRepository userRepository;
@@ -34,34 +34,50 @@ public class ReservedBookController {
     private ReservedBookRepository reservedBookRepository;
 
     @PostMapping("/reserve")
-    public ResponseEntity<ReservedBook> reserveBook(@RequestBody ReservedBook reservedBook) {
-
-        Optional<User> userOptional = userRepository.findById(reservedBook.getUser().getUserId());
-        Optional<Book> bookOptional = bookRepository.findById(reservedBook.getBook().getBookId());
-
-        // Validate that both user and book exist
-        if (userOptional.isEmpty() || bookOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    public ResponseEntity<ReservedBookDTO> reserveBook(@RequestBody ReservedBookDTO reservedBookDTO) {
+        // Validate User ID
+        if (reservedBookDTO.getUserId() <= 0) {
+            throw new CRUDAPIException(HttpStatus.BAD_REQUEST, "Invalid User data", "User ID is required.");
         }
 
-        // Set the complete user and book objects in the reservedBook entity
-        reservedBook.setUser(userOptional.get());
-        reservedBook.setBook(bookOptional.get());
+        // Validate Book ID
+        if (reservedBookDTO.getBookId() <= 0) {
+            throw new CRUDAPIException(HttpStatus.BAD_REQUEST, "Invalid Book data", "Book ID is required.");
+        }
 
-        // Save the reserved book in the database
-        ReservedBook savedReservedBook = reservedBookRepository.save(reservedBook);
+        // Check if User exists
+        Optional<User> userOptional = userRepository.findById(reservedBookDTO.getUserId());
+        if (userOptional.isEmpty()) {
+            throw new CRUDAPIException(HttpStatus.NOT_FOUND, "User not found", "No user found with ID: " + reservedBookDTO.getUserId());
+        }
 
-        // Return the saved ReservedBook entity as a response
-        return ResponseEntity.ok(savedReservedBook);
+        // Check if Book exists
+        Optional<Book> bookOptional = bookRepository.findById(reservedBookDTO.getBookId());
+        if (bookOptional.isEmpty()) {
+            throw new CRUDAPIException(HttpStatus.NOT_FOUND, "Book not found", "No book found with ID: " + reservedBookDTO.getBookId());
+        }
+
+        // Set User and Book for the ReservedBook
+        reservedBookDTO.setUserId(userOptional.get().getId());
+        reservedBookDTO.setBookId(bookOptional.get().getBookId());
+
+        // Reserve the book using the service and return the result
+        ReservedBookDTO savedReservedBook = reservedBookService.reserveBook(reservedBookDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedReservedBook);
     }
 
     @GetMapping
-    public ResponseEntity<List<ReservedBook>> getAllReservedBooks() {
+    public ResponseEntity<List<ReservedBookDTO>> getAllReservedBooks() {
         return ResponseEntity.ok(reservedBookService.getAllReservedBooks());
     }
 
     @GetMapping("/{reservedBookId}")
-    public ResponseEntity<ReservedBook> getReservedBookById(@PathVariable int reservedBookId) {
-        return ResponseEntity.ok(reservedBookService.getReservedBookById(reservedBookId));
+    public ResponseEntity<ReservedBookDTO> getReservedBookById(@PathVariable int reservedBookId) {
+        ReservedBookDTO reservedBookDTO = reservedBookService.getReservedBookById(reservedBookId);
+        if (reservedBookDTO == null) {
+            throw new CRUDAPIException(HttpStatus.NOT_FOUND, "Reserved Book not found", "No reserved book found with ID: " + reservedBookId);
+        }
+        return ResponseEntity.ok(reservedBookDTO);
     }
 }

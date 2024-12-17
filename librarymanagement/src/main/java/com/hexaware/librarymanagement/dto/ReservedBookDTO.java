@@ -14,5 +14,4 @@ public class ReservedBookDTO {
     private int userId;
     private int bookId;
     private Date reservationDate;
-
 }

@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface AdminNotificationRepository extends JpaRepository<AdminNotification, Integer> {
-    List<AdminNotification> findByUserUserId(int userId);
+    List<AdminNotification> findByUser_Id(int userId);
 
     List<AdminNotification> findByAdminAdminId(int adminId);
     // Custom query method to find notifications by admin
