@@ -1,13 +1,12 @@
 package com.hexaware.librarymanagement.service;
 
-import com.hexaware.librarymanagement.dto.JWTAuthResponse;
-import com.hexaware.librarymanagement.dto.LoginDTO;
-import com.hexaware.librarymanagement.dto.RegisterDTO;
-import com.hexaware.librarymanagement.dto.UserDTO;
+import com.hexaware.librarymanagement.dto.*;
+import com.hexaware.librarymanagement.entity.Admin;
 import com.hexaware.librarymanagement.entity.Role;
 import com.hexaware.librarymanagement.entity.User;
 import com.hexaware.librarymanagement.exception.BadRequestException;
 import com.hexaware.librarymanagement.exception.CRUDAPIException;
+import com.hexaware.librarymanagement.repository.AdminRepository;
 import com.hexaware.librarymanagement.repository.RoleRepository;
 import com.hexaware.librarymanagement.repository.UserRepository;
 import com.hexaware.librarymanagement.security.JwtTokenProvider;
@@ -32,23 +31,25 @@ public class AuthServiceImpl implements IAuthService{
     private AuthenticationManager authenticationManager;
     private UserRepository userRepository;
     private RoleRepository roleRepository;
+    private AdminRepository adminRepository;
     private PasswordEncoder passwordEncoder;
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
     public AuthServiceImpl(AuthenticationManager authenticationManager,
-                           UserRepository userRepository, RoleRepository roleRepository,PasswordEncoder passwordEncoder,
+                           UserRepository userRepository, RoleRepository roleRepository, AdminRepository adminRepository, PasswordEncoder passwordEncoder,
                            JwtTokenProvider jwtTokenProvider) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Override
     public JWTAuthResponse authenticateUser(LoginDTO dto) {
-        // Authenticate the user
+        // Authenticate the credentials (common for both User and Admin)
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPassword())
         );
@@ -59,17 +60,30 @@ public class AuthServiceImpl implements IAuthService{
         // Generate JWT token
         String token = jwtTokenProvider.generateToken(authentication);
 
-        // Retrieve user details from the database
-        User user = userRepository.findByUsername(dto.getUsername())
-                .orElseThrow(() -> new CRUDAPIException(HttpStatus.UNAUTHORIZED, "Authentication Failed",
-                        "User not found with the provided username."));
+        // Try finding the user by username
+        User user = userRepository.findByUsername(dto.getUsername()).orElse(null);
+        if (user != null) {
+            // Map user details to UserDTO
+            UserDTO userDto = mapToUserDTO(user);
 
-        // Check if password matches the hashed password in the database
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new CRUDAPIException(HttpStatus.UNAUTHORIZED, "Invalid credentials", "Password does not match");
+            // Return the JWTAuthResponse for the user
+            return new JWTAuthResponse(token, userDto, null);
         }
 
-        // Map user details to UserDTO
+        // If not a user, try finding the admin by username
+        Admin admin = adminRepository.findByUsername(dto.getUsername()).orElseThrow(() ->
+                new CRUDAPIException(HttpStatus.UNAUTHORIZED, "Authentication Failed",
+                        "No user or admin found with the provided username."));
+
+        // Map admin details to AdminDTO
+        AdminDTO adminDto = mapToAdminDTO(admin);
+
+        // Return the JWTAuthResponse for the admin
+        return new JWTAuthResponse(token, null, adminDto);
+    }
+
+    // Helper method for mapping User to UserDTO
+    private UserDTO mapToUserDTO(User user) {
         UserDTO userDto = new UserDTO();
         userDto.setName(user.getName());
         userDto.setEmail(user.getEmail());
@@ -82,13 +96,25 @@ public class AuthServiceImpl implements IAuthService{
         // Assign the highest role
         String role = user.getRoles().stream()
                 .map(Role::getName)
-                .sorted()
                 .findFirst()
                 .orElse("ROLE_USER");
         userDto.setRole(role);
 
-        // Return the JWTAuthResponse
-        return new JWTAuthResponse(token, userDto);
+        return userDto;
+    }
+
+    // Helper method for mapping Admin to AdminDTO
+    private AdminDTO mapToAdminDTO(Admin admin) {
+        AdminDTO adminDto = new AdminDTO();
+        adminDto.setAdminId(admin.getAdminId());
+        adminDto.setAdminName(admin.getAdminName());
+        adminDto.setUsername(admin.getUsername());
+        adminDto.setEmail(admin.getEmail());
+        adminDto.setGender(admin.getGender());
+        adminDto.setContactNumber(admin.getContactNumber());
+        adminDto.setAddress(admin.getAddress());
+        adminDto.setProfilePicture(admin.getProfilePicture());
+        return adminDto;
     }
 
     @Override
@@ -146,5 +172,39 @@ public class AuthServiceImpl implements IAuthService{
         return "Registration Successful!";
     }
 
+    @Override
+    public String registerAdmin(AdminDTO adminDTO) {
+        if (adminRepository.existsByEmail(adminDTO.getEmail())) {
+            throw new BadRequestException(HttpStatus.BAD_REQUEST, "Email already exists.");
+        }
 
+        // Map AdminDTO to Admin entity
+        Admin admin = new Admin();
+        admin.setUsername(adminDTO.getUsername()); // Use the username field for login
+        admin.setAdminName(adminDTO.getAdminName()); // Retain adminName for display purposes (not used for login)
+        admin.setEmail(adminDTO.getEmail());
+        admin.setPassword(passwordEncoder.encode(adminDTO.getPassword())); // Encode password
+        admin.setGender(adminDTO.getGender());
+
+        // Set default contact number if not provided
+        admin.setContactNumber(
+                adminDTO.getContactNumber() != null && !adminDTO.getContactNumber().isEmpty()
+                        ? adminDTO.getContactNumber()
+                        : "Unknown"
+        );
+
+        // Set default address if not provided
+        admin.setAddress(
+                adminDTO.getAddress() != null && !adminDTO.getAddress().isEmpty()
+                        ? adminDTO.getAddress()
+                        : "Unknown"
+        );
+
+        admin.setProfilePicture(adminDTO.getProfilePicture());
+
+        // Save the admin to the database
+        adminRepository.save(admin);
+
+        return "Admin Registration Successful!";
+    }
 }
