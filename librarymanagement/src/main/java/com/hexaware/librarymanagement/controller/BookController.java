@@ -14,7 +14,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/books")
-@CrossOrigin("http://localhost:3000")
+
+@CrossOrigin(origins = "http://localhost:3000")
+//@CrossOrigin("http://localhost:3000")
 public class BookController {
 
     @Autowired
