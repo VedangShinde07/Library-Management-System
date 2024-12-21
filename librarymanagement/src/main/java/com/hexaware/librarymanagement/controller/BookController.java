@@ -22,7 +22,7 @@ public class BookController {
     @Autowired
     private IBookService bookService;
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
     @PostMapping("/add")
     public ResponseEntity<BookDTO> addBook(@RequestBody BookDTO bookDTO) {
         if (bookDTO.getTitle() == null || bookDTO.getTitle().trim().isEmpty()) {

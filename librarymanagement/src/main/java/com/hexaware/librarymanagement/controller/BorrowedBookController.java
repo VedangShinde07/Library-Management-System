@@ -36,8 +36,11 @@ public class BorrowedBookController {
     @PostMapping("/borrow")
     public ResponseEntity<BorrowedBookDTO> borrowBook(@RequestBody BorrowedBookDTO borrowedBookDTO) {
         // Validate User
+        //System.out.println("/////////////////"+borrowedBookDTO);
         userRepository.findById(borrowedBookDTO.getUserId())
+
                 .orElseThrow(() -> new CRUDAPIException(HttpStatus.NOT_FOUND, "User with ID " + borrowedBookDTO.getUserId() + " not found"));
+
 
         // Validate Book
         bookRepository.findById(borrowedBookDTO.getBookId())
