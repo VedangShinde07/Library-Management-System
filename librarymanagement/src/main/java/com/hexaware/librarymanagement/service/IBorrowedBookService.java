@@ -8,5 +8,8 @@ public interface IBorrowedBookService {
     BorrowedBookDTO borrowBook(BorrowedBookDTO borrowedBookDTO);
     List<BorrowedBookDTO> getBorrowedBooksByUser(int userId);
     List<BorrowedBookDTO> getAllBorrowedBooks();
+
+    double returnBook(int borrowId);
+
     BorrowedBookDTO getBorrowedBookById(int borrowedBookId);
 }

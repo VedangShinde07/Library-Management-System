@@ -87,7 +87,7 @@ public class BookController {
         return ResponseEntity.ok(books);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
     @PutMapping("/update/{bookId}")
     public ResponseEntity<BookDTO> updateBook(@PathVariable int bookId, @RequestBody BookDTO bookDTO) {
         if (bookId <= 0) {
@@ -101,7 +101,7 @@ public class BookController {
         return ResponseEntity.ok(updatedBook);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
     @DeleteMapping("/delete/{bookId}")
     public ResponseEntity<String> deleteBook(@PathVariable int bookId) {
         if (bookId <= 0) {
